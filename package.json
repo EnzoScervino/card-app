@@ -6,6 +6,8 @@
     "start": "expo start -p mjtau4bqpq4l0ij9xzinp --tunnel",
     "start-web": "expo start -p mjtau4bqpq4l0ij9xzinp --web",
     "start-web-dev": "DEBUG=expo* expo start -p mjtau4bqpq4l0ij9xzinp --web",
+    "build-web": "expo export:web",
+    "vercel-build": "expo export:web",
     "lint": "expo lint"
   },
   "dependencies": {
