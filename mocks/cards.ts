@@ -143,7 +143,7 @@ export const defaultCards: CreditCard[] = [
     color: '#C9A84C',
     rules: [
       { id: 'ag-1', cardId: 'amex-gold', category: 'restaurant', rewardRate: 4 },
-      { id: 'ag-2', cardId: 'amex-gold', category: 'grocery', rewardRate: 4, capLimit: 25000, caveat: '4x applies only at U.S. supermarkets (up to $25K/yr). Excludes Walmart, Target & superstores.' },
+      { id: 'ag-2', cardId: 'amex-gold', category: 'grocery', rewardRate: 4, capLimit: 25000, caveat: '4x applies only at U.S. supermarkets (up to $25K/yr).' },
       { id: 'ag-3', cardId: 'amex-gold', category: 'travel', rewardRate: 3 },
       { id: 'ag-4', cardId: 'amex-gold', category: 'other', rewardRate: 1 },
       { id: 'ag-5', cardId: 'amex-gold', category: 'gas', rewardRate: 1 },
@@ -180,7 +180,7 @@ export const defaultCards: CreditCard[] = [
     annualFee: 95,
     color: '#006FCF',
     rules: [
-      { id: 'abcp-1', cardId: 'amex-blue-cash-preferred', category: 'grocery', rewardRate: 6, capLimit: 6000, caveat: '6% limited to U.S. supermarkets, capped at $6,000/yr (then 1%). Excludes Walmart, Target & superstores.' },
+      { id: 'abcp-1', cardId: 'amex-blue-cash-preferred', category: 'grocery', rewardRate: 6, capLimit: 6000, caveat: '6% limited to U.S. supermarkets, capped at $6,000/yr (then 1%).' },
       { id: 'abcp-2', cardId: 'amex-blue-cash-preferred', category: 'streaming', rewardRate: 6 },
       { id: 'abcp-3', cardId: 'amex-blue-cash-preferred', category: 'transport', rewardRate: 3 },
       { id: 'abcp-4', cardId: 'amex-blue-cash-preferred', category: 'gas', rewardRate: 3 },
@@ -220,7 +220,7 @@ export const defaultCards: CreditCard[] = [
     rules: [
       { id: 'aep-1', cardId: 'amex-everyday-preferred', category: 'grocery', rewardRate: 3 },
       { id: 'aep-2', cardId: 'amex-everyday-preferred', category: 'gas', rewardRate: 2 },
-      { id: 'aep-3', cardId: 'amex-everyday-preferred', category: 'travel', rewardRate: 2 },
+      { id: 'aep-3', cardId: 'amex-everyday-preferred', category: 'travel', rewardRate: 2, caveat: '2x rate available only via Chase Travel with eligible Prime membership.' },
       { id: 'aep-4', cardId: 'amex-everyday-preferred', category: 'restaurant', rewardRate: 1 },
       { id: 'aep-5', cardId: 'amex-everyday-preferred', category: 'other', rewardRate: 1 },
       { id: 'aep-6', cardId: 'amex-everyday-preferred', category: 'transport', rewardRate: 1 },
