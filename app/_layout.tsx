@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Platform } from 'react-native';
 import { CardWiseProvider, useCardWise } from '@/providers/CardWiseProvider';
 import Colors from '@/constants/colors';
 
-SplashScreen.preventAutoHideAsync();
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 const queryClient = new QueryClient();
 
@@ -15,22 +18,23 @@ function RootLayoutNav() {
   const { isLoading } = useCardWise();
   const router = useRouter();
   const segments = useSegments();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && Platform.OS !== 'web') {
       SplashScreen.hideAsync();
     }
   }, [isLoading]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !navigationState?.key) return;
 
     const inOnboarding = segments[0] === 'onboarding';
 
     if (inOnboarding) {
       router.replace('/(tabs)/(home)');
     }
-  }, [isLoading, segments]);
+  }, [isLoading, segments, navigationState?.key]);
 
   if (isLoading) return null;
 
