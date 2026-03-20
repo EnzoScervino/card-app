@@ -104,7 +104,7 @@ export const defaultCards: CreditCard[] = [
     annualFee: 0,
     color: '#232F3E',
     rules: [
-      { id: 'apv-1', cardId: 'amazon-prime-visa', category: 'onlineShopping', rewardRate: 5, caveat: '5% only at Amazon.com for internet purchases.' },
+      { id: 'apv-1', cardId: 'amazon-prime-visa', category: 'onlineShopping', rewardRate: 5, caveat: '5% on internet purchases is only for Amazon.com.' },
       { id: 'apv-2', cardId: 'amazon-prime-visa', category: 'restaurant', rewardRate: 2 },
       { id: 'apv-3', cardId: 'amazon-prime-visa', category: 'gas', rewardRate: 2 },
       { id: 'apv-4', cardId: 'amazon-prime-visa', category: 'transport', rewardRate: 2 },
