@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform } from 'react-native';
 import { CardWiseProvider, useCardWise } from '@/providers/CardWiseProvider';
 import Colors from '@/constants/colors';
+import 'expo-insights';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync();
