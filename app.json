@@ -35,6 +35,7 @@
           "origin": "https://rork.com/"
         }
       ],
+      "expo-insights",
       "expo-font",
       "expo-web-browser"
     ],
