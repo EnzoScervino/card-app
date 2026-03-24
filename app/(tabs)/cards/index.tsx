@@ -38,6 +38,24 @@ const rewardLabels: Record<RewardType, string> = {
   miles: 'Miles',
 };
 
+function normalizeSearchValue(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function getCardSearchTerms(card: CreditCardType): string[] {
+  const issuer = card.issuer.trim();
+  const name = card.name.trim();
+  const combined = `${issuer} ${name}`.trim();
+
+  return [
+    issuer,
+    name,
+    combined,
+    combined.replace(/\bcard\b/gi, '').replace(/\s+/g, ' ').trim(),
+    `${issuer} ${name.replace(/\bcard\b/gi, '').replace(/\s+/g, ' ').trim()}`.trim(),
+  ].filter((term, index, terms) => Boolean(term) && terms.indexOf(term) === index);
+}
+
 export default function CardsScreen() {
   const { allCards, selectedCardIds, toggleCard } = useCardWise();
   const { contentPadding } = useResponsive();
@@ -65,14 +83,17 @@ export default function CardsScreen() {
     console.log('[CardsScreen] Search query changed:', searchQuery);
   }, [searchQuery]);
 
-  const normalizedSearchQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
+  const normalizedSearchQuery = useMemo(() => normalizeSearchValue(searchQuery), [searchQuery]);
 
   const filteredCards = useMemo(() => {
     if (!normalizedSearchQuery) {
       return allCards;
     }
 
-    return allCards.filter((card) => card.name.toLowerCase().includes(normalizedSearchQuery));
+    return allCards.filter((card) => {
+      const searchTerms = getCardSearchTerms(card);
+      return searchTerms.some((term) => normalizeSearchValue(term).includes(normalizedSearchQuery));
+    });
   }, [allCards, normalizedSearchQuery]);
 
   const groupedCards = useMemo(() => {
@@ -142,7 +163,7 @@ export default function CardsScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search cards by name"
+              placeholder="Search by bank or card name"
               placeholderTextColor={Colors.dark.textTertiary}
               style={styles.searchInput}
               autoCapitalize="none"
@@ -186,7 +207,7 @@ export default function CardsScreen() {
           <View style={styles.emptyState} testID="cards-search-empty-state">
             <Text style={styles.emptyStateTitle}>Card not found</Text>
             <Text style={styles.emptyStateText}>
-              Try a different card name to check if it's available on PerkCalc.
+              Try a different bank name or card name to check if it's available on PerkCalc.
             </Text>
           </View>
         )}
