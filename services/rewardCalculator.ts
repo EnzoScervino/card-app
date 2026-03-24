@@ -128,7 +128,22 @@ export function calculateRewards(
     };
   });
 
-  results.sort((a, b) => b.normalizedReturn - a.normalizedReturn);
+  results.sort((a, b) => {
+    const normalizedReturnDiff = b.normalizedReturn - a.normalizedReturn;
+
+    if (normalizedReturnDiff !== 0) {
+      return normalizedReturnDiff;
+    }
+
+    const aHasCaveat = Boolean(a.caveat);
+    const bHasCaveat = Boolean(b.caveat);
+
+    if (aHasCaveat !== bHasCaveat) {
+      return aHasCaveat ? 1 : -1;
+    }
+
+    return a.card.name.localeCompare(b.card.name);
+  });
 
   console.log(
     '[RewardCalculator] Results (normalized USD):',
