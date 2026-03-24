@@ -525,6 +525,9 @@ export const defaultCards: CreditCard[] = [
       { id: 'buc-8', cardId: 'boa-unlimited-cash', category: 'streaming', rewardRate: 1.5 },
       { id: 'buc-9', cardId: 'boa-unlimited-cash', category: 'other', rewardRate: 1.5 },
     ],
+    firstYearBonusConfig: {
+      boostedRate: 2,
+    },
   },
   {
     id: 'boa-travel-rewards',

@@ -34,17 +34,23 @@ export function calculateRewards(
     let bonusCategoryBoost = false;
     let firstYearBoost = false;
 
+    const selection = bonusSelections?.[card.id];
+
     if (card.selectableBonus && bonusSelections) {
-      const sel = bonusSelections[card.id];
-      const selectedCat = sel?.selectedCategory ?? card.selectableBonus.defaultCategory;
+      const selectedCat = selection?.selectedCategory ?? card.selectableBonus.defaultCategory;
       if (category === selectedCat) {
         baseRate = card.selectableBonus.bonusRate;
         bonusCategoryBoost = true;
-        if (sel?.firstYearBonus) {
+        if (selection?.firstYearBonus) {
           baseRate += card.selectableBonus.firstYearBonusRate;
           firstYearBoost = true;
         }
       }
+    }
+
+    if (card.firstYearBonusConfig?.boostedRate && selection?.firstYearBonus) {
+      baseRate = card.firstYearBonusConfig.boostedRate;
+      firstYearBoost = true;
     }
 
     const biltBoostActive = isBiltCard(card) && isBiltRentDay();

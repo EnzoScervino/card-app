@@ -283,7 +283,7 @@ const IssuerSection = React.memo(function IssuerSection({
                   isSelected={isSelected}
                   onToggle={onToggleCard}
                 />
-                {isSelected && card.selectableBonus && (
+                {isSelected && (card.selectableBonus || card.firstYearBonusConfig) && (
                   <BonusCategoryPicker card={card} />
                 )}
               </React.Fragment>
@@ -304,7 +304,8 @@ const rewardUnitLabels: Record<RewardType, string> = {
 const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: CreditCardType }) {
   const { getBonusSelection, updateBonusSelection } = useCardWise();
   const bonus = card.selectableBonus;
-  if (!bonus) return null;
+  const firstYearBonusConfig = card.firstYearBonusConfig;
+  if (!bonus && !firstYearBonusConfig) return null;
 
   const selection = getBonusSelection(card.id);
 
@@ -318,52 +319,70 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
     updateBonusSelection(card.id, { firstYearBonus: !selection.firstYearBonus });
   }, [card.id, selection.firstYearBonus, updateBonusSelection]);
 
-  const effectiveRate = selection.firstYearBonus
-    ? bonus.bonusRate + bonus.firstYearBonusRate
-    : bonus.bonusRate;
+  const effectiveRate = bonus
+    ? (selection.firstYearBonus
+      ? bonus.bonusRate + bonus.firstYearBonusRate
+      : bonus.bonusRate)
+    : firstYearBonusConfig?.boostedRate ?? 0;
 
-  const hasFirstYearBonus = bonus.firstYearBonusRate > 0;
+  const hasFirstYearBonus = (bonus?.firstYearBonusRate ?? 0) > 0 || Boolean(firstYearBonusConfig);
   const rateUnit = card.rewardType === 'cashback'
     ? `${effectiveRate}% cash back`
     : `${effectiveRate}x ${rewardUnitLabels[card.rewardType]}`;
 
+  const firstYearDescription = bonus
+    ? `+${bonus.firstYearBonusRate}% extra on your chosen category`
+    : `All categories earn ${firstYearBonusConfig?.boostedRate ?? 0}% during year one`;
+
   return (
     <View style={styles.bonusPickerContainer}>
-      <View style={styles.bonusPickerHeader}>
-        <Settings2 size={14} color={Colors.dark.accent} />
-        <Text style={styles.bonusPickerTitle}>Choose your {bonus.bonusRate}x category</Text>
-      </View>
+      {bonus && (
+        <>
+          <View style={styles.bonusPickerHeader}>
+            <Settings2 size={14} color={Colors.dark.accent} />
+            <Text style={styles.bonusPickerTitle}>Choose your {bonus.bonusRate}x category</Text>
+          </View>
 
-      <View style={styles.bonusCategoryGrid}>
-        {bonus.eligibleCategories.map((cat) => {
-          const isActive = selection.selectedCategory === cat;
-          const info = CategoryInfo[cat];
-          return (
-            <Pressable
-              key={cat}
-              onPress={() => handleCategorySelect(cat)}
-              style={[
-                styles.bonusCategoryChip,
-                isActive && styles.bonusCategoryChipActive,
-              ]}
-              testID={`bonus-cat-${card.id}-${cat}`}
-            >
-              <Text style={styles.bonusCategoryEmoji}>{info.emoji}</Text>
-              <Text style={[
-                styles.bonusCategoryLabel,
-                isActive && styles.bonusCategoryLabelActive,
-              ]}>{info.label}</Text>
-              {isActive && <Check size={12} color={Colors.dark.accent} />}
-            </Pressable>
-          );
-        })}
-      </View>
+          <View style={styles.bonusCategoryGrid}>
+            {bonus.eligibleCategories.map((cat) => {
+              const isActive = selection.selectedCategory === cat;
+              const info = CategoryInfo[cat];
+              return (
+                <Pressable
+                  key={cat}
+                  onPress={() => handleCategorySelect(cat)}
+                  style={[
+                    styles.bonusCategoryChip,
+                    isActive && styles.bonusCategoryChipActive,
+                  ]}
+                  testID={`bonus-cat-${card.id}-${cat}`}
+                >
+                  <Text style={styles.bonusCategoryEmoji}>{info.emoji}</Text>
+                  <Text style={[
+                    styles.bonusCategoryLabel,
+                    isActive && styles.bonusCategoryLabelActive,
+                  ]}>{info.label}</Text>
+                  {isActive && <Check size={12} color={Colors.dark.accent} />}
+                </Pressable>
+              );
+            })}
+          </View>
 
-      <View style={styles.bonusRateDisplay}>
-        <Text style={styles.bonusRateText}>
-          {CategoryInfo[selection.selectedCategory].emoji} {CategoryInfo[selection.selectedCategory].label}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
-        </Text>
-      </View>
+          <View style={styles.bonusRateDisplay}>
+            <Text style={styles.bonusRateText}>
+              {CategoryInfo[selection.selectedCategory].emoji} {CategoryInfo[selection.selectedCategory].label}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
+            </Text>
+          </View>
+        </>
+      )}
+
+      {!bonus && firstYearBonusConfig && (
+        <View style={styles.bonusRateDisplay}>
+          <Text style={styles.bonusRateText}>
+            <Text style={styles.bonusRateHighlight}>{selection.firstYearBonus ? `${firstYearBonusConfig.boostedRate}% cash back` : '1.5% cash back'}</Text> on all categories
+          </Text>
+        </View>
+      )}
 
       {hasFirstYearBonus && (
         <Pressable
@@ -381,7 +400,7 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
                 styles.firstYearToggleText,
                 selection.firstYearBonus && styles.firstYearToggleTextActive,
               ]}>First-year bonus</Text>
-              <Text style={styles.firstYearToggleDesc}>+{bonus.firstYearBonusRate}% extra on your chosen category</Text>
+              <Text style={styles.firstYearToggleDesc}>{firstYearDescription}</Text>
             </View>
           </View>
           <View style={[

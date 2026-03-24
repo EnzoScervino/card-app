@@ -28,6 +28,10 @@ export interface SelectableBonusConfig {
   defaultCategory: Category;
 }
 
+export interface FirstYearBonusConfig {
+  boostedRate: number;
+}
+
 export interface CreditCard {
   id: string;
   name: string;
@@ -37,6 +41,7 @@ export interface CreditCard {
   color: string;
   rules: RewardRule[];
   selectableBonus?: SelectableBonusConfig;
+  firstYearBonusConfig?: FirstYearBonusConfig;
 }
 
 export interface UserCard {
