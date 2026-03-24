@@ -26,6 +26,8 @@ export interface SelectableBonusConfig {
   bonusRate: number;
   firstYearBonusRate: number;
   defaultCategory: Category;
+  defaultCategories?: Category[];
+  maxSelections?: number;
 }
 
 export interface FirstYearBonusConfig {
@@ -58,6 +60,7 @@ export interface UserSettings {
 
 export interface CardBonusSelection {
   selectedCategory: Category;
+  selectedCategories?: Category[];
   firstYearBonus: boolean;
 }
 

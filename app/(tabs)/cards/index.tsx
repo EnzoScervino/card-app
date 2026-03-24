@@ -309,10 +309,47 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
 
   const selection = getBonusSelection(card.id);
 
+  const maxSelections = bonus?.maxSelections ?? 1;
+  const selectedCategories = useMemo<Category[]>(() => (
+    selection.selectedCategories?.length
+      ? selection.selectedCategories
+      : [selection.selectedCategory]
+  ), [selection.selectedCategories, selection.selectedCategory]);
+
   const handleCategorySelect = useCallback((cat: Category) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    updateBonusSelection(card.id, { selectedCategory: cat });
-  }, [card.id, updateBonusSelection]);
+
+    if (!bonus) {
+      return;
+    }
+
+    if (maxSelections <= 1) {
+      updateBonusSelection(card.id, {
+        selectedCategory: cat,
+        selectedCategories: [cat],
+      });
+      return;
+    }
+
+    const isActive = selectedCategories.includes(cat);
+    let nextSelectedCategories: Category[];
+
+    if (isActive) {
+      if (selectedCategories.length <= 1) {
+        return;
+      }
+      nextSelectedCategories = selectedCategories.filter((selectedCat) => selectedCat !== cat);
+    } else if (selectedCategories.length >= maxSelections) {
+      nextSelectedCategories = [...selectedCategories.slice(1), cat];
+    } else {
+      nextSelectedCategories = [...selectedCategories, cat];
+    }
+
+    updateBonusSelection(card.id, {
+      selectedCategory: nextSelectedCategories[0] ?? cat,
+      selectedCategories: nextSelectedCategories,
+    });
+  }, [bonus, card.id, maxSelections, selectedCategories, updateBonusSelection]);
 
   const handleFirstYearToggle = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -340,12 +377,16 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
         <>
           <View style={styles.bonusPickerHeader}>
             <Settings2 size={14} color={Colors.dark.accent} />
-            <Text style={styles.bonusPickerTitle}>Choose your {bonus.bonusRate}x category</Text>
+            <Text style={styles.bonusPickerTitle}>
+              {maxSelections > 1
+                ? `Choose ${maxSelections} categories for ${bonus.bonusRate}x`
+                : `Choose your ${bonus.bonusRate}x category`}
+            </Text>
           </View>
 
           <View style={styles.bonusCategoryGrid}>
             {bonus.eligibleCategories.map((cat) => {
-              const isActive = selection.selectedCategory === cat;
+              const isActive = selectedCategories.includes(cat);
               const info = CategoryInfo[cat];
               return (
                 <Pressable
@@ -370,7 +411,7 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
 
           <View style={styles.bonusRateDisplay}>
             <Text style={styles.bonusRateText}>
-              {CategoryInfo[selection.selectedCategory].emoji} {CategoryInfo[selection.selectedCategory].label}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
+              {selectedCategories.map((categoryKey) => `${CategoryInfo[categoryKey].emoji} ${CategoryInfo[categoryKey].label}`).join(' · ')}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
             </Text>
           </View>
         </>

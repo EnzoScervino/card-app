@@ -37,8 +37,10 @@ export function calculateRewards(
     const selection = bonusSelections?.[card.id];
 
     if (card.selectableBonus && bonusSelections) {
-      const selectedCat = selection?.selectedCategory ?? card.selectableBonus.defaultCategory;
-      if (category === selectedCat) {
+      const selectedCategories = selection?.selectedCategories?.length
+        ? selection.selectedCategories
+        : [selection?.selectedCategory ?? card.selectableBonus.defaultCategory];
+      if (selectedCategories.includes(category)) {
         baseRate = card.selectableBonus.bonusRate;
         bonusCategoryBoost = true;
         if (selection?.firstYearBonus) {
