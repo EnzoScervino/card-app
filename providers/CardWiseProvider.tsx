@@ -26,6 +26,27 @@ function areSettingsEqual(a: UserSettings, b: UserSettings): boolean {
   );
 }
 
+function areCategoryArraysEqual(a?: Category[], b?: Category[]): boolean {
+  if (!a?.length && !b?.length) {
+    return true;
+  }
+
+  const safeA = a ?? [];
+  const safeB = b ?? [];
+
+  if (safeA.length !== safeB.length) {
+    return false;
+  }
+
+  for (let i = 0; i < safeA.length; i += 1) {
+    if (safeA[i] !== safeB[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function areBonusSelectionsEqual(
   a: Record<string, CardBonusSelection>,
   b: Record<string, CardBonusSelection>
@@ -36,6 +57,7 @@ function areBonusSelectionsEqual(
   for (const key of keysA) {
     if (!b[key]) return false;
     if (a[key].selectedCategory !== b[key].selectedCategory) return false;
+    if (!areCategoryArraysEqual(a[key].selectedCategories, b[key].selectedCategories)) return false;
     if (a[key].firstYearBonus !== b[key].firstYearBonus) return false;
   }
   return true;
@@ -188,8 +210,20 @@ export const [CardWiseProvider, useCardWise] = createContextHook(() => {
     setBonusSelections((prev) => {
       const card = defaultCards.find((c) => c.id === cardId);
       const defaultCat = card?.selectableBonus?.defaultCategory ?? 'gas';
-      const existing = prev[cardId] ?? { selectedCategory: defaultCat, firstYearBonus: false };
-      const updated = { ...prev, [cardId]: { ...existing, ...selection } };
+      const defaultCategories = card?.selectableBonus?.defaultCategories ?? [defaultCat];
+      const existing = prev[cardId] ?? {
+        selectedCategory: defaultCat,
+        selectedCategories: defaultCategories,
+        firstYearBonus: false,
+      };
+      const normalizedSelectedCategories = selection.selectedCategories ?? existing.selectedCategories ?? defaultCategories;
+      const updatedSelection: CardBonusSelection = {
+        ...existing,
+        ...selection,
+        selectedCategory: selection.selectedCategory ?? normalizedSelectedCategories[0] ?? defaultCat,
+        selectedCategories: normalizedSelectedCategories,
+      };
+      const updated = { ...prev, [cardId]: updatedSelection };
       saveBonusSelectionsMutation.mutate(updated);
       return updated;
     });
@@ -198,7 +232,14 @@ export const [CardWiseProvider, useCardWise] = createContextHook(() => {
   const getBonusSelection = useCallback((cardId: string): CardBonusSelection => {
     const card = defaultCards.find((c) => c.id === cardId);
     const defaultCat = card?.selectableBonus?.defaultCategory ?? 'gas';
-    return bonusSelections[cardId] ?? { selectedCategory: defaultCat, firstYearBonus: false };
+    const defaultCategories = card?.selectableBonus?.defaultCategories ?? [defaultCat];
+    const existing = bonusSelections[cardId];
+
+    return existing ?? {
+      selectedCategory: defaultCat,
+      selectedCategories: defaultCategories,
+      firstYearBonus: false,
+    };
   }, [bonusSelections]);
 
   const allCards = defaultCards;

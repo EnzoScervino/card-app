@@ -38,6 +38,24 @@ const rewardLabels: Record<RewardType, string> = {
   miles: 'Miles',
 };
 
+function normalizeSearchValue(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function getCardSearchTerms(card: CreditCardType): string[] {
+  const issuer = card.issuer.trim();
+  const name = card.name.trim();
+  const combined = `${issuer} ${name}`.trim();
+
+  return [
+    issuer,
+    name,
+    combined,
+    combined.replace(/\bcard\b/gi, '').replace(/\s+/g, ' ').trim(),
+    `${issuer} ${name.replace(/\bcard\b/gi, '').replace(/\s+/g, ' ').trim()}`.trim(),
+  ].filter((term, index, terms) => Boolean(term) && terms.indexOf(term) === index);
+}
+
 export default function CardsScreen() {
   const { allCards, selectedCardIds, toggleCard } = useCardWise();
   const { contentPadding } = useResponsive();
@@ -65,14 +83,17 @@ export default function CardsScreen() {
     console.log('[CardsScreen] Search query changed:', searchQuery);
   }, [searchQuery]);
 
-  const normalizedSearchQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
+  const normalizedSearchQuery = useMemo(() => normalizeSearchValue(searchQuery), [searchQuery]);
 
   const filteredCards = useMemo(() => {
     if (!normalizedSearchQuery) {
       return allCards;
     }
 
-    return allCards.filter((card) => card.name.toLowerCase().includes(normalizedSearchQuery));
+    return allCards.filter((card) => {
+      const searchTerms = getCardSearchTerms(card);
+      return searchTerms.some((term) => normalizeSearchValue(term).includes(normalizedSearchQuery));
+    });
   }, [allCards, normalizedSearchQuery]);
 
   const groupedCards = useMemo(() => {
@@ -142,7 +163,7 @@ export default function CardsScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search cards by name"
+              placeholder="Search by bank or card name"
               placeholderTextColor={Colors.dark.textTertiary}
               style={styles.searchInput}
               autoCapitalize="none"
@@ -186,7 +207,7 @@ export default function CardsScreen() {
           <View style={styles.emptyState} testID="cards-search-empty-state">
             <Text style={styles.emptyStateTitle}>Card not found</Text>
             <Text style={styles.emptyStateText}>
-              Try a different card name to check if it's available on PerkCalc.
+              Try a different bank name or card name to check if it's available on PerkCalc.
             </Text>
           </View>
         )}
@@ -283,7 +304,7 @@ const IssuerSection = React.memo(function IssuerSection({
                   isSelected={isSelected}
                   onToggle={onToggleCard}
                 />
-                {isSelected && card.selectableBonus && (
+                {isSelected && (card.selectableBonus || card.firstYearBonusConfig) && (
                   <BonusCategoryPicker card={card} />
                 )}
               </React.Fragment>
@@ -304,66 +325,126 @@ const rewardUnitLabels: Record<RewardType, string> = {
 const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: CreditCardType }) {
   const { getBonusSelection, updateBonusSelection } = useCardWise();
   const bonus = card.selectableBonus;
-  if (!bonus) return null;
+  const firstYearBonusConfig = card.firstYearBonusConfig;
+  if (!bonus && !firstYearBonusConfig) return null;
 
   const selection = getBonusSelection(card.id);
 
+  const maxSelections = bonus?.maxSelections ?? 1;
+  const selectedCategories = useMemo<Category[]>(() => (
+    selection.selectedCategories?.length
+      ? selection.selectedCategories
+      : [selection.selectedCategory]
+  ), [selection.selectedCategories, selection.selectedCategory]);
+
   const handleCategorySelect = useCallback((cat: Category) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    updateBonusSelection(card.id, { selectedCategory: cat });
-  }, [card.id, updateBonusSelection]);
+
+    if (!bonus) {
+      return;
+    }
+
+    if (maxSelections <= 1) {
+      updateBonusSelection(card.id, {
+        selectedCategory: cat,
+        selectedCategories: [cat],
+      });
+      return;
+    }
+
+    const isActive = selectedCategories.includes(cat);
+    let nextSelectedCategories: Category[];
+
+    if (isActive) {
+      if (selectedCategories.length <= 1) {
+        return;
+      }
+      nextSelectedCategories = selectedCategories.filter((selectedCat) => selectedCat !== cat);
+    } else if (selectedCategories.length >= maxSelections) {
+      nextSelectedCategories = [...selectedCategories.slice(1), cat];
+    } else {
+      nextSelectedCategories = [...selectedCategories, cat];
+    }
+
+    updateBonusSelection(card.id, {
+      selectedCategory: nextSelectedCategories[0] ?? cat,
+      selectedCategories: nextSelectedCategories,
+    });
+  }, [bonus, card.id, maxSelections, selectedCategories, updateBonusSelection]);
 
   const handleFirstYearToggle = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     updateBonusSelection(card.id, { firstYearBonus: !selection.firstYearBonus });
   }, [card.id, selection.firstYearBonus, updateBonusSelection]);
 
-  const effectiveRate = selection.firstYearBonus
-    ? bonus.bonusRate + bonus.firstYearBonusRate
-    : bonus.bonusRate;
+  const effectiveRate = bonus
+    ? (selection.firstYearBonus
+      ? bonus.bonusRate + bonus.firstYearBonusRate
+      : bonus.bonusRate)
+    : firstYearBonusConfig?.boostedRate ?? 0;
 
-  const hasFirstYearBonus = bonus.firstYearBonusRate > 0;
+  const hasFirstYearBonus = (bonus?.firstYearBonusRate ?? 0) > 0 || Boolean(firstYearBonusConfig);
   const rateUnit = card.rewardType === 'cashback'
     ? `${effectiveRate}% cash back`
     : `${effectiveRate}x ${rewardUnitLabels[card.rewardType]}`;
 
+  const firstYearDescription = bonus
+    ? `+${bonus.firstYearBonusRate}% extra on your chosen category`
+    : `All categories earn ${firstYearBonusConfig?.boostedRate ?? 0}% during year one`;
+
   return (
     <View style={styles.bonusPickerContainer}>
-      <View style={styles.bonusPickerHeader}>
-        <Settings2 size={14} color={Colors.dark.accent} />
-        <Text style={styles.bonusPickerTitle}>Choose your {bonus.bonusRate}x category</Text>
-      </View>
+      {bonus && (
+        <>
+          <View style={styles.bonusPickerHeader}>
+            <Settings2 size={14} color={Colors.dark.accent} />
+            <Text style={styles.bonusPickerTitle}>
+              {maxSelections > 1
+                ? `Choose ${maxSelections} categories for ${bonus.bonusRate}x`
+                : `Choose your ${bonus.bonusRate}x category`}
+            </Text>
+          </View>
 
-      <View style={styles.bonusCategoryGrid}>
-        {bonus.eligibleCategories.map((cat) => {
-          const isActive = selection.selectedCategory === cat;
-          const info = CategoryInfo[cat];
-          return (
-            <Pressable
-              key={cat}
-              onPress={() => handleCategorySelect(cat)}
-              style={[
-                styles.bonusCategoryChip,
-                isActive && styles.bonusCategoryChipActive,
-              ]}
-              testID={`bonus-cat-${card.id}-${cat}`}
-            >
-              <Text style={styles.bonusCategoryEmoji}>{info.emoji}</Text>
-              <Text style={[
-                styles.bonusCategoryLabel,
-                isActive && styles.bonusCategoryLabelActive,
-              ]}>{info.label}</Text>
-              {isActive && <Check size={12} color={Colors.dark.accent} />}
-            </Pressable>
-          );
-        })}
-      </View>
+          <View style={styles.bonusCategoryGrid}>
+            {bonus.eligibleCategories.map((cat) => {
+              const isActive = selectedCategories.includes(cat);
+              const info = CategoryInfo[cat];
+              return (
+                <Pressable
+                  key={cat}
+                  onPress={() => handleCategorySelect(cat)}
+                  style={[
+                    styles.bonusCategoryChip,
+                    isActive && styles.bonusCategoryChipActive,
+                  ]}
+                  testID={`bonus-cat-${card.id}-${cat}`}
+                >
+                  <Text style={styles.bonusCategoryEmoji}>{info.emoji}</Text>
+                  <Text style={[
+                    styles.bonusCategoryLabel,
+                    isActive && styles.bonusCategoryLabelActive,
+                  ]}>{info.label}</Text>
+                  {isActive && <Check size={12} color={Colors.dark.accent} />}
+                </Pressable>
+              );
+            })}
+          </View>
 
-      <View style={styles.bonusRateDisplay}>
-        <Text style={styles.bonusRateText}>
-          {CategoryInfo[selection.selectedCategory].emoji} {CategoryInfo[selection.selectedCategory].label}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
-        </Text>
-      </View>
+          <View style={styles.bonusRateDisplay}>
+            <Text style={styles.bonusRateText}>
+              {selectedCategories.map((categoryKey) => `${CategoryInfo[categoryKey].emoji} ${CategoryInfo[categoryKey].label}`).join(' · ')}: <Text style={styles.bonusRateHighlight}>{rateUnit}</Text>
+            </Text>
+          </View>
+        </>
+      )}
+
+      {!bonus && firstYearBonusConfig && (
+        <View style={styles.bonusRateDisplay}>
+          <Text style={styles.bonusRateText}>
+            <Text style={styles.bonusRateHighlight}>{selection.firstYearBonus ? `${firstYearBonusConfig.boostedRate}% cash back` : '1.5% cash back'}</Text> on all categories
+          </Text>
+        </View>
+      )}
 
       {hasFirstYearBonus && (
         <Pressable
@@ -381,7 +462,7 @@ const BonusCategoryPicker = memo(function BonusCategoryPicker({ card }: { card: 
                 styles.firstYearToggleText,
                 selection.firstYearBonus && styles.firstYearToggleTextActive,
               ]}>First-year bonus</Text>
-              <Text style={styles.firstYearToggleDesc}>+{bonus.firstYearBonusRate}% extra on your chosen category</Text>
+              <Text style={styles.firstYearToggleDesc}>{firstYearDescription}</Text>
             </View>
           </View>
           <View style={[

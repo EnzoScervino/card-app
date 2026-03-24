@@ -34,17 +34,25 @@ export function calculateRewards(
     let bonusCategoryBoost = false;
     let firstYearBoost = false;
 
+    const selection = bonusSelections?.[card.id];
+
     if (card.selectableBonus && bonusSelections) {
-      const sel = bonusSelections[card.id];
-      const selectedCat = sel?.selectedCategory ?? card.selectableBonus.defaultCategory;
-      if (category === selectedCat) {
+      const selectedCategories = selection?.selectedCategories?.length
+        ? selection.selectedCategories
+        : [selection?.selectedCategory ?? card.selectableBonus.defaultCategory];
+      if (selectedCategories.includes(category)) {
         baseRate = card.selectableBonus.bonusRate;
         bonusCategoryBoost = true;
-        if (sel?.firstYearBonus) {
+        if (selection?.firstYearBonus) {
           baseRate += card.selectableBonus.firstYearBonusRate;
           firstYearBoost = true;
         }
       }
+    }
+
+    if (card.firstYearBonusConfig?.boostedRate && selection?.firstYearBonus) {
+      baseRate = card.firstYearBonusConfig.boostedRate;
+      firstYearBoost = true;
     }
 
     const biltBoostActive = isBiltCard(card) && isBiltRentDay();
@@ -120,7 +128,22 @@ export function calculateRewards(
     };
   });
 
-  results.sort((a, b) => b.normalizedReturn - a.normalizedReturn);
+  results.sort((a, b) => {
+    const normalizedReturnDiff = b.normalizedReturn - a.normalizedReturn;
+
+    if (normalizedReturnDiff !== 0) {
+      return normalizedReturnDiff;
+    }
+
+    const aHasCaveat = Boolean(a.caveat);
+    const bHasCaveat = Boolean(b.caveat);
+
+    if (aHasCaveat !== bHasCaveat) {
+      return aHasCaveat ? 1 : -1;
+    }
+
+    return a.card.name.localeCompare(b.card.name);
+  });
 
   console.log(
     '[RewardCalculator] Results (normalized USD):',
