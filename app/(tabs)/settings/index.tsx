@@ -39,7 +39,7 @@ export default function SettingsScreen() {
   );
 
   const handleSave = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     updateSettings({
       pointValue: parseFloat(pointValue) / 100 || 0.015,
       mileValue: parseFloat(mileValue) / 100 || 0.012,
@@ -55,7 +55,7 @@ export default function SettingsScreen() {
         text: 'Reset',
         style: 'destructive',
         onPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           setPointValue('1.5');
           setMileValue('1.2');
           setDefaultAmount('50');
@@ -216,6 +216,17 @@ export default function SettingsScreen() {
               tracking, no data collection.
             </Text>
           </View>
+        </View>
+
+        <View style={styles.projectNoticeCard} testID="personal-project-notice">
+          <Text style={styles.projectNoticeEyebrow}>Project Notice</Text>
+          <Text style={styles.projectNoticeTitle}>Independent personal project</Text>
+          <Text style={styles.projectNoticeText}>
+            PerkCalc is an independently developed personal project created for
+            informational and educational use. It is not a commercial product,
+            financial service, or official offering from any card issuer,
+            rewards program, or institution.
+          </Text>
         </View>
 
         <Text style={styles.disclaimerText} testID="settings-disclaimer">
@@ -400,6 +411,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.dark.textSecondary,
     lineHeight: 17,
+  },
+  projectNoticeCard: {
+    marginTop: 18,
+    backgroundColor: Colors.dark.accentMuted,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.dark.accentGlow,
+    padding: 16,
+  },
+  projectNoticeEyebrow: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: Colors.dark.accentLight,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  projectNoticeTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.dark.text,
+    marginBottom: 6,
+  },
+  projectNoticeText: {
+    fontSize: 13,
+    color: Colors.dark.textSecondary,
+    lineHeight: 20,
   },
   disclaimerText: {
     fontSize: 11,
